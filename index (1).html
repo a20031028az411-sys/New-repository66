@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>踩地雷</title>
+<style>
+body{
+    background:#1e1e1e;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+}
+h1{
+    margin-top:20px;
+}
+#board{
+    width:320px;
+    margin:20px auto;
+    display:grid;
+    grid-template-columns:repeat(10,32px);
+    gap:2px;
+}
+.cell{
+    width:32px;
+    height:32px;
+    background:#555;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+    font-weight:bold;
+    user-select:none;
+}
+.open{
+    background:#ccc;
+    color:black;
+}
+.mine{
+    background:red;
+}
+button{
+    padding:10px 20px;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<h1>💣 踩地雷</h1>
+<button onclick="startGame()">重新開始</button>
+<h2 id="status"></h2>
+<div id="board"></div>
+
+<script>
+const size = 10;
+const minesCount = 15;
+
+let board = [];
+let gameOver = false;
+
+function startGame(){
+    gameOver = false;
+    document.getElementById("status").innerText = "";
+    board = [];
+
+    const boardDiv = document.getElementById("board");
+    boardDiv.innerHTML = "";
+
+    for(let y=0;y<size;y++){
+        board[y] = [];
+
+        for(let x=0;x<size;x++){
+            board[y][x] = {
+                mine:false,
+                open:false,
+                count:0
+            };
+        }
+    }
+
+    let placed = 0;
+
+    while(placed < minesCount){
+        let x = Math.floor(Math.random()*size);
+        let y = Math.floor(Math.random()*size);
+
+        if(!board[y][x].mine){
+            board[y][x].mine = true;
+            placed++;
+        }
+    }
+
+    for(let y=0;y<size;y++){
+        for(let x=0;x<size;x++){
+
+            if(board[y][x].mine) continue;
+
+            let count = 0;
+
+            for(let dy=-1;dy<=1;dy++){
+                for(let dx=-1;dx<=1;dx++){
+
+                    let nx = x + dx;
+                    let ny = y + dy;
+
+                    if(nx>=0 && nx<size && ny>=0 && ny<size){
+                        if(board[ny][nx].mine){
+                            count++;
+                        }
+                    }
+                }
+            }
+
+            board[y][x].count = count;
+        }
+    }
+
+    drawBoard();
+}
+
+function drawBoard(){
+    const boardDiv = document.getElementById("board");
+    boardDiv.innerHTML = "";
+
+    for(let y=0;y<size;y++){
+        for(let x=0;x<size;x++){
+
+            const cell = document.createElement("div");
+            cell.className = "cell";
+
+            const data = board[y][x];
+
+            if(data.open){
+
+                cell.classList.add("open");
+
+                if(data.mine){
+                    cell.classList.add("mine");
+                    cell.innerText = "💣";
+                }else if(data.count > 0){
+                    cell.innerText = data.count;
+                }
+            }
+
+            cell.addEventListener("click", ()=>openCell(x,y));
+
+            boardDiv.appendChild(cell);
+        }
+    }
+}
+
+function openCell(x,y){
+
+    if(gameOver) return;
+
+    const cell = board[y][x];
+
+    if(cell.open) return;
+
+    cell.open = true;
+
+    if(cell.mine){
+
+        gameOver = true;
+
+        for(let row of board){
+            for(let c of row){
+                if(c.mine){
+                    c.open = true;
+                }
+            }
+        }
+
+        document.getElementById("status").innerText = "💀 你踩到地雷了！";
+
+        drawBoard();
+
+        return;
+    }
+
+    if(cell.count === 0){
+
+        for(let dy=-1;dy<=1;dy++){
+            for(let dx=-1;dx<=1;dx++){
+
+                let nx = x + dx;
+                let ny = y + dy;
+
+                if(nx>=0 && nx<size && ny>=0 && ny<size){
+                    openCell(nx,ny);
+                }
+            }
+        }
+    }
+
+    drawBoard();
+    checkWin();
+}
+
+function checkWin(){
+
+    let safe = 0;
+
+    for(let y=0;y<size;y++){
+        for(let x=0;x<size;x++){
+
+            if(!board[y][x].mine && board[y][x].open){
+                safe++;
+            }
+        }
+    }
+
+    if(safe === size*size - minesCount){
+        gameOver = true;
+        document.getElementById("status").innerText = "🎉 你贏了！";
+    }
+}
+
+startGame();
+</script>
+
+</body>
+</html>
